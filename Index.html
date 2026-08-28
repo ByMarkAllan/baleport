@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html><head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.28.1/mapbox-gl.css" rel="stylesheet">
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.28.1/mapbox-gl.js"></script>
+  <style>
+    :root{
+      --ink:#111318;--muted:#68707d;--soft:#f5f6f8;--line:#e3e6ea;--panel:#fff;
+      --accent:#c9ff4f;--accent-ink:#1c2700;--warn:#b16a00;--warn-bg:#fff8e8;
+      --danger:#b42318;--danger-bg:#fff2f0;--shadow:0 18px 60px rgba(17,19,24,.12);
+      --radius:14px;--radius-sm:10px;--header:62px;--sidebar:440px;
+    }
+    *{box-sizing:border-box} html,body{height:100%;margin:0;background:#eef0f2;color:var(--ink);font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+    button,input,select,textarea{font:inherit;color:inherit} button{cursor:pointer}
+    .app{height:100%;display:grid;grid-template-rows:var(--header) 1fr;overflow:hidden}
+    .topbar{height:var(--header);display:flex;align-items:center;gap:14px;padding:0 18px;background:rgba(255,255,255,.95);border-bottom:1px solid var(--line);z-index:40;backdrop-filter:blur(18px)}
+    .brand{display:flex;align-items:center;gap:10px;min-width:170px}.brandmark{width:34px;height:34px;border-radius:9px;background:var(--ink);display:grid;place-items:center;position:relative;overflow:hidden}.brandmark:before{content:"";width:15px;height:15px;border:3px solid var(--accent);border-radius:50%}.brandmark:after{content:"";position:absolute;width:14px;height:3px;background:var(--accent);transform:rotate(-45deg);right:5px;bottom:8px;border-radius:2px}.brandname{font-weight:850;letter-spacing:-.035em;font-size:19px}.brandtag{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em;margin-top:1px}
+    .route-strip{display:flex;align-items:center;gap:6px;min-width:0;flex:1;overflow:auto;scrollbar-width:none}.route-strip::-webkit-scrollbar{display:none}
+    .route-tab{border:1px solid transparent;background:transparent;border-radius:9px;padding:8px 10px;display:flex;gap:8px;align-items:center;white-space:nowrap;color:#535b67;font-size:12px}.route-tab:hover{background:var(--soft)}.route-tab.active{background:#16191f;color:#fff}.route-tab .dot{width:7px;height:7px;border-radius:50%;background:#adb3bc}.route-tab.active .dot{background:var(--accent)}.route-tab .mini{opacity:.68}
+    .top-actions{display:flex;align-items:center;gap:7px}.btn{height:36px;border:1px solid var(--line);background:#fff;border-radius:9px;padding:0 12px;display:inline-flex;align-items:center;justify-content:center;gap:7px;font-size:12px;font-weight:700;white-space:nowrap}.btn:hover{border-color:#c8ccd2;background:#fafafa}.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}.btn.primary:hover{background:#242831}.btn.accent{background:var(--accent);color:var(--accent-ink);border-color:#bce940}.btn.ghost{background:transparent}.btn.icon{width:36px;padding:0}.btn.small{height:30px;padding:0 9px;font-size:11px}.btn.danger{color:var(--danger)}
+    .ico{width:15px;height:15px;display:inline-block;flex:none}.ico svg{width:100%;height:100%;display:block;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    .workspace{min-height:0;display:grid;grid-template-columns:var(--sidebar) 1fr;position:relative}
+    .sidebar{min-width:0;background:var(--panel);border-right:1px solid var(--line);overflow:auto;z-index:20;scrollbar-color:#cfd3d8 transparent;scrollbar-width:thin}
+    .side-head{padding:22px 22px 16px;position:sticky;top:0;background:rgba(255,255,255,.96);backdrop-filter:blur(14px);z-index:5;border-bottom:1px solid var(--line)}
+    .eyebrow{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);font-weight:800}.route-name{border:0;outline:0;background:transparent;font-size:25px;font-weight:820;letter-spacing:-.045em;width:100%;padding:4px 0 2px}.route-name::placeholder{color:#b9bec5}.subline{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);min-height:18px}.status-dot{width:7px;height:7px;border-radius:50%;background:#c1c5cb}.status-dot.ready{background:#61b92f}.status-dot.loading{background:#e0a11b;animation:pulse 1s infinite}@keyframes pulse{50%{opacity:.35}}
+    .side-body{padding:0 22px 28px}.section{padding:20px 0;border-bottom:1px solid var(--line)}.section:last-child{border-bottom:0}.section-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}.section-title h3{font-size:12px;margin:0;font-weight:820;letter-spacing:-.01em}.section-title .hint{font-size:10px;color:var(--muted)}
+    .stop-list{display:grid;gap:9px;position:relative}.stop-row{display:grid;grid-template-columns:26px 1fr 28px;align-items:start;gap:8px;position:relative}.stop-row:after{content:"";position:absolute;left:12px;top:31px;bottom:-10px;border-left:1px dashed #c9ced5}.stop-row:last-child:after{display:none}.stop-index{width:26px;height:26px;margin-top:5px;border-radius:8px;background:#f2f3f5;border:1px solid #dfe2e6;display:grid;place-items:center;font-size:10px;font-weight:800;z-index:1}.stop-row:first-child .stop-index{background:var(--ink);color:#fff;border-color:var(--ink)}.stop-row:last-child .stop-index{background:var(--accent);color:var(--accent-ink);border-color:#b7df50}.stop-field{position:relative}.address-input{width:100%;height:38px;border:1px solid var(--line);border-radius:9px;padding:0 11px;background:#fff;outline:0;font-size:12px}.address-input:focus{border-color:#9aa1aa;box-shadow:0 0 0 3px rgba(17,19,24,.05)}.address-input.resolved{padding-right:28px}.resolved-check{position:absolute;right:9px;top:12px;width:14px;height:14px;border-radius:50%;background:#eaf8df;color:#43821e;font-size:9px;display:grid;place-items:center;font-weight:900}.remove-stop{width:28px;height:28px;margin-top:5px;border:0;background:transparent;border-radius:7px;color:#9aa0a8}.remove-stop:hover{background:#f3f4f6;color:var(--danger)}
+    .suggestions{position:absolute;left:0;right:0;top:42px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 38px rgba(17,19,24,.14);z-index:50;overflow:hidden}.suggestion{padding:10px 11px;border-bottom:1px solid #eef0f2;cursor:pointer}.suggestion:last-child{border:0}.suggestion:hover{background:#f6f7f8}.suggestion strong{font-size:11px;display:block;line-height:1.35}.suggestion span{font-size:10px;color:var(--muted);display:block;margin-top:2px;line-height:1.35}
+    .stop-actions{display:flex;gap:7px;margin-top:11px}.link-btn{border:0;background:transparent;padding:0;color:#424851;font-size:11px;font-weight:750;display:inline-flex;align-items:center;gap:5px}.link-btn:hover{color:#000}.link-btn:disabled{opacity:.4;cursor:not-allowed}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.field{display:grid;gap:5px}.field label{font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:#737b87;font-weight:780}.control{height:38px;width:100%;border:1px solid var(--line);border-radius:9px;background:#fff;outline:0;padding:0 10px;font-size:12px}.control:focus{border-color:#9aa1aa;box-shadow:0 0 0 3px rgba(17,19,24,.05)}textarea.control{height:74px;padding:9px 10px;resize:vertical}
+    .seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1px solid var(--line);border-radius:9px;padding:3px;gap:3px;background:#f7f8f9}.seg button{border:0;background:transparent;border-radius:7px;height:29px;font-size:10px;font-weight:750;color:#747b85}.seg button.active{background:#fff;color:#111318;box-shadow:0 1px 4px rgba(17,19,24,.09)}
+    .preset-note{font-size:9.5px;color:#8a919b;line-height:1.4;margin-top:8px}.cap-meter{height:5px;background:#eef0f2;border-radius:999px;overflow:hidden;margin-top:8px}.cap-meter > span{height:100%;display:block;background:#84b937;border-radius:999px;transition:width .25s}.cap-meter > span.over{background:#d65343}.cap-copy{font-size:9.5px;color:var(--muted);display:flex;justify-content:space-between;margin-top:5px}
+    details.advanced{border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#fbfbfc}details.advanced summary{list-style:none;cursor:pointer;padding:11px 12px;font-size:11px;font-weight:780;display:flex;justify-content:space-between;align-items:center}details.advanced summary::-webkit-details-marker{display:none}.advanced-body{padding:0 12px 12px;border-top:1px solid var(--line)}
+    .toggles{display:grid}.toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #eceef0}.toggle-row:last-child{border-bottom:0}.toggle-copy strong{display:block;font-size:10.5px}.toggle-copy span{display:block;font-size:9px;color:var(--muted);margin-top:2px}.switch{width:34px;height:20px;border-radius:999px;background:#d8dce1;position:relative;flex:none;border:0;padding:0}.switch:after{content:"";width:16px;height:16px;background:#fff;border-radius:50%;position:absolute;left:2px;top:2px;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:.18s}.switch.on{background:#16191f}.switch.on:after{transform:translateX(14px)}
+    .notice{border:1px solid #e8d098;background:var(--warn-bg);border-radius:10px;padding:10px 11px;font-size:9.5px;color:#7d5b16;line-height:1.45;margin-top:10px}.notice strong{display:block;font-size:10px;color:#64470b;margin-bottom:2px}
+    .calc-wrap{padding-top:20px}.calc{height:46px;width:100%;border:0;border-radius:11px;background:var(--ink);color:#fff;font-weight:820;letter-spacing:-.01em;display:flex;align-items:center;justify-content:center;gap:8px}.calc:hover{background:#242832}.calc:disabled{opacity:.55;cursor:wait}
+    .estimate-card{margin-top:12px;border:1px solid var(--line);border-radius:12px;padding:14px;background:linear-gradient(180deg,#fff,#fafbfb);display:none}.estimate-card.show{display:block}.estimate-top{display:flex;justify-content:space-between;align-items:end}.estimate-label{font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:800}.estimate-value{font-size:30px;font-weight:850;letter-spacing:-.055em;margin-top:3px}.estimate-meta{text-align:right;font-size:10px;color:var(--muted);line-height:1.55}.breakdown{margin-top:12px;padding-top:11px;border-top:1px solid var(--line);display:grid;gap:6px}.break-row{display:flex;justify-content:space-between;font-size:10px;color:#5e6570}.break-row.total{color:#111318;font-weight:800;padding-top:5px;border-top:1px dashed #d6d9dd}
+    .map-wrap{position:relative;min-width:0;overflow:hidden;background:#e8ebed}.map{position:absolute;inset:0}.mapboxgl-ctrl-logo{opacity:.65}.mapboxgl-ctrl-attrib{font-size:9px!important}.mapboxgl-popup-content{border-radius:10px;padding:10px 12px;box-shadow:0 8px 30px rgba(0,0,0,.15)}
+    .map-ui{position:absolute;inset:0;pointer-events:none;z-index:5}.map-ui > *{pointer-events:auto}.map-top{position:absolute;left:16px;right:16px;top:16px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.metrics{display:flex;gap:6px;flex-wrap:wrap}.metric{background:rgba(255,255,255,.94);border:1px solid rgba(218,222,226,.95);backdrop-filter:blur(14px);border-radius:10px;padding:9px 11px;min-width:92px;box-shadow:0 4px 18px rgba(17,19,24,.07)}.metric .k{font-size:8.5px;text-transform:uppercase;letter-spacing:.08em;color:#777f8a;font-weight:800}.metric .v{font-size:14px;font-weight:820;margin-top:2px;letter-spacing:-.02em}.map-tools{display:flex;gap:6px}.map-pill{height:36px;border:1px solid rgba(218,222,226,.95);background:rgba(255,255,255,.94);backdrop-filter:blur(14px);border-radius:9px;padding:0 11px;font-size:10px;font-weight:780;display:flex;align-items:center;gap:6px;box-shadow:0 4px 18px rgba(17,19,24,.07)}
+    .route-options{position:absolute;left:16px;bottom:18px;display:none;gap:7px;align-items:stretch;max-width:calc(100% - 32px);overflow:auto;padding-bottom:2px;scrollbar-width:none}.route-options.show{display:flex}.route-options::-webkit-scrollbar{display:none}.option-card{border:1px solid #dfe3e6;background:rgba(255,255,255,.96);backdrop-filter:blur(16px);border-radius:11px;padding:10px 12px;min-width:152px;box-shadow:0 5px 24px rgba(17,19,24,.09);cursor:pointer}.option-card.active{border-color:#1b1e24;box-shadow:0 0 0 1px #1b1e24,0 5px 24px rgba(17,19,24,.09)}.option-card .option-title{font-size:10px;font-weight:820}.option-card .option-meta{font-size:9.5px;color:var(--muted);margin-top:4px;display:flex;gap:8px}.option-card .best{font-size:8px;text-transform:uppercase;letter-spacing:.08em;color:#537d17;font-weight:850;margin-left:5px}
+    .alerts-panel{position:absolute;right:16px;bottom:18px;width:min(360px,calc(100% - 32px));background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);display:none;overflow:hidden}.alerts-panel.show{display:block}.alerts-head{padding:11px 13px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;font-size:10px;font-weight:820}.alert-item{padding:10px 13px;border-bottom:1px solid #eceef0;font-size:9.5px;line-height:1.4;color:#6e5011;background:#fffaf0}.alert-item:last-child{border-bottom:0}.alert-item.violation{color:#8c2d24;background:#fff7f5}
+    .marker{width:24px;height:24px;border-radius:8px;background:#fff;border:2px solid #171a1f;display:grid;place-items:center;font-size:9px;font-weight:850;box-shadow:0 3px 12px rgba(17,19,24,.2)}.marker.start{background:#171a1f;color:#fff}.marker.end{background:var(--accent);color:var(--accent-ink)}
+    .empty-map{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(380px,80%);text-align:center;pointer-events:none}.empty-map .em-icon{width:46px;height:46px;border:1px solid rgba(17,19,24,.12);background:rgba(255,255,255,.85);backdrop-filter:blur(10px);border-radius:14px;margin:0 auto 12px;display:grid;place-items:center;font-size:18px}.empty-map h2{font-size:18px;letter-spacing:-.035em;margin:0 0 6px}.empty-map p{font-size:11px;color:#68707b;line-height:1.5;margin:0}.empty-map.hide{display:none}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(17,19,24,.46);z-index:100;display:none;align-items:center;justify-content:center;padding:18px;backdrop-filter:blur(5px)}.modal-backdrop.show{display:flex}.modal{width:min(460px,100%);background:#fff;border-radius:16px;box-shadow:0 28px 90px rgba(0,0,0,.25);overflow:hidden}.modal-head{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}.modal-head h2{margin:0;font-size:17px;letter-spacing:-.03em}.modal-body{padding:20px}.modal-foot{padding:14px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px;background:#fafbfb}.modal-close{border:0;background:transparent;width:30px;height:30px;border-radius:8px}.modal-close:hover{background:#f1f2f4}.share-preview{border:1px solid var(--line);border-radius:10px;background:#f8f9fa;padding:11px;margin:12px 0;font-size:10px;color:#59616c;line-height:1.5}.share-preview strong{color:#111318}
+    .directions-panel{position:absolute;right:16px;top:66px;bottom:18px;width:min(440px,calc(100% - 32px));background:rgba(255,255,255,.98);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);display:none;overflow:hidden;grid-template-rows:auto auto 1fr;backdrop-filter:blur(18px)}.directions-panel.show{display:grid}.directions-head{padding:14px 15px 12px;border-bottom:1px solid var(--line);display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.directions-head h2{margin:2px 0 0;font-size:17px;letter-spacing:-.035em}.directions-head .sub{font-size:9.5px;color:var(--muted);margin-top:3px}.directions-actions{display:flex;gap:6px;padding:10px 12px;border-bottom:1px solid var(--line);background:#fbfbfc;overflow:auto;scrollbar-width:none}.directions-actions::-webkit-scrollbar{display:none}.directions-body{overflow:auto;padding:4px 0 14px;scrollbar-color:#cfd3d8 transparent;scrollbar-width:thin}.leg-card{border-bottom:1px solid var(--line)}.leg-card:last-child{border-bottom:0}.leg-head{position:sticky;top:0;z-index:2;padding:10px 14px;background:rgba(247,248,249,.96);backdrop-filter:blur(12px);border-bottom:1px solid #eceef0}.leg-title{font-size:10px;font-weight:850}.leg-meta{font-size:9px;color:var(--muted);margin-top:2px}.dir-step{display:grid;grid-template-columns:28px 1fr;gap:9px;padding:11px 14px;border-bottom:1px solid #eef0f2;cursor:pointer}.dir-step:last-child{border-bottom:0}.dir-step:hover{background:#fafbfb}.dir-num{width:26px;height:26px;border:1px solid #dfe2e6;background:#fff;border-radius:8px;display:grid;place-items:center;font-size:9px;font-weight:850;color:#59616c}.dir-content{min-width:0}.dir-instruction{width:100%;border:1px solid transparent;border-radius:7px;background:transparent;padding:3px 5px;margin:-3px -5px;resize:none;overflow:hidden;line-height:1.38;font-size:11px;font-weight:720;outline:0}.dir-instruction:hover{background:#fff;border-color:#e9ebee}.dir-instruction:focus{background:#fff;border-color:#9da4ad;box-shadow:0 0 0 3px rgba(17,19,24,.05)}.dir-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:9px;color:#7d848d;margin-top:4px}.dir-road{max-width:190px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.dir-edited{display:none;font-size:8px;font-weight:850;text-transform:uppercase;letter-spacing:.08em;color:#6a8d2b}.dir-step.edited .dir-edited{display:inline}.reset-dir{border:0;background:transparent;padding:0;font-size:8.5px;color:#777f89;text-decoration:underline;display:none}.dir-step.edited .reset-dir{display:inline}.directions-empty{padding:28px 22px;text-align:center;color:var(--muted);font-size:11px;line-height:1.55}.print-sheet{display:none}.print-route-head{border-bottom:2px solid #111;padding-bottom:12px;margin-bottom:18px}.print-route-head h1{font-size:28px;margin:0 0 6px}.print-summary{display:flex;gap:24px;font-size:12px}.print-stops,.print-directions{margin-top:20px}.print-sheet h2{font-size:15px;margin:0 0 10px}.print-stop,.print-dir-row{display:grid;grid-template-columns:80px 1fr;gap:12px;padding:8px 0;border-bottom:1px solid #ddd;font-size:11px;line-height:1.4}.print-dir-row{grid-template-columns:42px 1fr 88px}.print-dir-row strong{font-weight:700}.print-leg{margin-top:16px;font-size:12px;font-weight:800}.print-foot{margin-top:26px;font-size:9px;color:#666;line-height:1.5}
+    .toast{position:fixed;z-index:120;left:50%;bottom:22px;transform:translate(-50%,15px);opacity:0;background:#171a1f;color:#fff;border-radius:10px;padding:10px 13px;font-size:11px;font-weight:650;box-shadow:0 9px 36px rgba(0,0,0,.25);pointer-events:none;transition:.22s}.toast.show{opacity:1;transform:translate(-50%,0)}.toast.error{background:#8d2d25}
+    .token-screen{position:fixed;inset:0;z-index:200;background:#f4f5f7;display:none;align-items:center;justify-content:center;padding:22px}.token-screen.show{display:flex}.token-card{width:min(560px,100%);background:#fff;border:1px solid var(--line);border-radius:18px;padding:28px;box-shadow:var(--shadow)}.token-card h1{font-size:28px;letter-spacing:-.05em;margin:12px 0 7px}.token-card p{font-size:12px;color:var(--muted);line-height:1.6}.token-card code{display:block;background:#111318;color:#d9ff7a;border-radius:10px;padding:13px 14px;font-size:11px;overflow:auto;margin:14px 0}.steps{counter-reset:step;display:grid;gap:10px;margin-top:16px}.step{display:grid;grid-template-columns:26px 1fr;gap:9px;align-items:start;font-size:11px;line-height:1.5;color:#535b65}.step:before{counter-increment:step;content:counter(step);width:23px;height:23px;border-radius:7px;background:#f0f2f4;display:grid;place-items:center;font-size:9px;font-weight:850;color:#111318}
+    .mobile-routebar{display:none}
+    @media (max-width:900px){
+      :root{--header:56px}.topbar{padding:0 12px}.brand{min-width:auto}.brandtag{display:none}.route-strip{display:none}.top-actions .desktop-label{display:none}.workspace{grid-template-columns:1fr;grid-template-rows:minmax(320px,45vh) 1fr;overflow:auto}.sidebar{grid-row:2;border-right:0;border-top:1px solid var(--line);overflow:visible}.map-wrap{grid-row:1;position:sticky;top:0;height:45vh;min-height:320px;z-index:10}.side-head{top:0}.mobile-routebar{display:flex;gap:6px;overflow:auto;padding:10px 14px;background:#fff;border-bottom:1px solid var(--line);scrollbar-width:none}.mobile-routebar::-webkit-scrollbar{display:none}.map-top{left:10px;right:10px;top:10px}.metric{min-width:78px;padding:7px 9px}.map-tools{display:none}.alerts-panel{right:10px;bottom:10px}.route-options{left:10px;bottom:10px;max-width:calc(100% - 20px)}.directions-panel{left:10px;right:10px;top:58px;bottom:10px;width:auto}
+    }
+    @media (max-width:520px){.top-actions .hide-xs{display:none}.brandname{font-size:17px}.brandmark{width:30px;height:30px}.side-body,.side-head{padding-left:16px;padding-right:16px}.grid3{grid-template-columns:1fr 1fr}.metric:nth-child(3){display:none}.route-name{font-size:23px}.modal-body{padding:16px}.modal-head{padding:15px 16px}.modal-foot{padding:12px 16px}}
+    @media print{.topbar,.sidebar,.mapboxgl-ctrl-group,.mapboxgl-ctrl-attrib,.mapboxgl-ctrl-logo,.map-tools,.route-options,.directions-panel{display:none!important}.app{display:block;height:auto}.workspace{display:block}.map-wrap{height:58vh;position:relative}.map-ui{display:block}.alerts-panel{position:absolute}.metric{box-shadow:none}.map{position:absolute}.empty-map{display:none!important}body.print-directions .app,body.print-directions .modal-backdrop,body.print-directions .toast,body.print-directions .token-screen{display:none!important}body.print-directions .print-sheet{display:block!important;padding:0;color:#111;background:#fff;font-family:Arial,Helvetica,sans-serif}body.print-directions{background:#fff}}
+  </style>
+</head>
+<body>
+  <div id="tokenScreen" class="token-screen">
+    <div class="token-card">
+      <div class="brandmark"></div>
+      <h1>Connect Mapbox to Baleport.</h1>
+      <p>Baleport needs a Mapbox public access token for the map, address search, route optimization, and Directions API calls.</p>
+      <div class="steps">
+        <div class="step">Create or copy a Mapbox public access token from your Mapbox account.</div>
+        <div class="step">In Apps Script, open <strong>Project Settings → Script properties</strong>.</div>
+        <div class="step">Add this property, then redeploy or reload the web app:</div>
+      </div>
+      <code>MAPBOX_PUBLIC_TOKEN = pk.your_mapbox_public_token</code>
+      <p>For production, apply appropriate Mapbox token restrictions after confirming the final deployed Apps Script origin works with your configuration.</p>
+    </div>
+  </div>
+
+  <div class="app">
+    <header class="topbar">
+      
+      <div id="routeStrip" class="route-strip"></div>
+      <div class="top-actions">
+        <button class="btn ghost hide-xs" id="addRouteBtn" title="Add another route"><span class="ico" data-icon="plus"></span><span class="desktop-label">New route</span></button>
+        <button class="btn" id="directionsBtn" title="View turn-by-turn directions"><span class="ico" data-icon="directions"></span><span class="desktop-label">Directions</span></button>
+        <button class="btn hide-xs" id="shareBtn" title="Share route by email"><span class="ico" data-icon="share"></span><span class="desktop-label">Share</span></button>
+        <button class="btn icon hide-xs" id="printBtn" title="Print route sheet and directions"><span class="ico" data-icon="print"></span></button>
+        <button class="btn primary" id="topCalculate"><span class="ico" data-icon="route"></span><span class="desktop-label">Estimate</span></button>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <aside class="sidebar">
+        <div id="mobileRoutebar" class="mobile-routebar"></div>
+        <div class="side-head">
+          <div class="eyebrow">Active route</div>
+          <input id="routeName" class="route-name" value="Route 01" aria-label="Route name">
+          <div class="subline"><span id="statusDot" class="status-dot"></span><span id="statusText">Add pickup and drop-off</span></div>
+        </div>
+
+        <div class="side-body">
+          <section class="section">
+            <div class="section-title"><h3>Stops</h3><span class="hint">Up to 12 for optimization</span></div>
+            <div id="stopList" class="stop-list"></div>
+            <div class="stop-actions">
+              <button id="addStopBtn" class="link-btn"><span class="ico" data-icon="plus"></span>Add stop</button>
+              <button id="optimizeBtn" class="link-btn"><span class="ico" data-icon="spark"></span>Optimize stop order</button>
+            </div>
+          </section>
+
+          <section class="section">
+            <div class="section-title"><h3>Shipment</h3><span class="hint">Quote inputs</span></div>
+            <div class="grid2">
+              <div class="field"><label>Cargo type</label><select id="cargoType" class="control"><option>General freight</option><option>Palletized freight</option><option>Furniture / fixtures</option><option>Retail / inventory</option><option>Equipment / parts</option><option>Food / packaged goods</option><option>Other</option></select></div>
+              <div class="field"><label>Service</label><select id="serviceLevel" class="control"><option value="standard">Standard</option><option value="rush">Rush / same-day</option><option value="scheduled">Scheduled</option></select></div>
+            </div>
+            <div class="grid3" style="margin-top:9px">
+              <div class="field"><label>Weight (lb)</label><input id="cargoWeight" class="control" type="number" min="0" step="50" value="500"></div>
+              <div class="field"><label>Pieces</label><input id="pieces" class="control" type="number" min="1" step="1" value="1"></div>
+              <div class="field"><label>Pallets</label><input id="pallets" class="control" type="number" min="0" step="1" value="0"></div>
+            </div>
+            <div class="grid2" style="margin-top:9px">
+              <div class="field"><label>Ready date</label><input id="readyDate" class="control" type="date"></div>
+              <div class="field"><label>Ready time</label><input id="readyTime" class="control" type="time" value="09:00"></div>
+            </div>
+          </section>
+
+          <section class="section">
+            <div class="section-title"><h3>Vehicle &amp; clearance</h3><span class="hint">Editable fleet assumptions</span></div>
+            <div class="field"><label>Vehicle preset</label><select id="vehiclePreset" class="control"><option value="cargo">Cargo van</option><option value="sprinter">High-roof cargo van</option><option value="box12">12′ box truck</option><option value="box16">16′ box truck</option><option value="custom">Custom vehicle</option></select></div>
+            <div class="grid3" style="margin-top:9px">
+              <div class="field"><label>Height (ft)</label><input id="vehicleHeight" class="control" type="number" min="0" step="0.1"></div>
+              <div class="field"><label>Width (ft)</label><input id="vehicleWidth" class="control" type="number" min="0" step="0.1"></div>
+              <div class="field"><label>Length (ft)</label><input id="vehicleLength" class="control" type="number" min="0" step="0.1"></div>
+            </div>
+            <div class="grid2" style="margin-top:9px">
+              <div class="field"><label>Vehicle curb wt. (lb)</label><input id="curbWeight" class="control" type="number" min="0" step="100"></div>
+              <div class="field"><label>Payload capacity (lb)</label><input id="payloadCapacity" class="control" type="number" min="0" step="100"></div>
+            </div>
+            <div class="cap-meter"><span id="capBar" style="width:0"></span></div>
+            <div class="cap-copy"><span id="capCopy">0% payload used</span><span id="totalWeightCopy">Total route weight —</span></div>
+            <div class="preset-note">Preset dimensions and payloads are planning examples, not manufacturer or legal ratings. Adjust them to the actual vehicle before dispatch.</div>
+            <div class="notice"><strong>Clearance logic</strong>Height, width, and total vehicle weight are sent to Mapbox as routing constraints. Vehicle length is shown as advisory only because Mapbox Directions does not expose a max-length routing parameter.</div>
+          </section>
+
+          <section class="section">
+            <div class="section-title"><h3>Routing preferences</h3><span class="hint">Advanced filters</span></div>
+            <div class="field"><label>Route model</label><div class="seg" id="profileSeg"><button data-profile="traffic" class="active">Traffic-aware</button><button data-profile="standard">Standard</button></div></div>
+            <details class="advanced" style="margin-top:10px" open="">
+              <summary>Road restrictions <span>⌄</span></summary>
+              <div class="advanced-body"><div id="restrictionToggles" class="toggles"></div></div>
+            </details>
+            <details class="advanced" style="margin-top:9px">
+              <summary>Dispatch options <span>⌄</span></summary>
+              <div class="advanced-body">
+                <div class="grid2" style="margin-top:10px">
+                  <div class="field"><label>Destination approach</label><select id="approach" class="control"><option value="unrestricted">Either side</option><option value="curb">Curb side</option></select></div>
+                  <div class="field"><label>Route alternatives</label><select id="alternatives" class="control"><option value="true">Show alternatives</option><option value="false">Fastest only</option></select></div>
+                </div>
+              </div>
+            </details>
+          </section>
+
+          <section class="section">
+            <div class="section-title"><h3>Rate model</h3><span class="hint">Your pricing</span></div>
+            <div class="grid3">
+              <div class="field"><label>Base ($)</label><input id="rateBase" class="control" type="number" min="0" step="1" value="45"></div>
+              <div class="field"><label>Per mile ($)</label><input id="rateMile" class="control" type="number" min="0" step="0.05" value="1.55"></div>
+              <div class="field"><label>Per hour ($)</label><input id="rateHour" class="control" type="number" min="0" step="1" value="18"></div>
+            </div>
+            <div class="grid3" style="margin-top:9px">
+              <div class="field"><label>Extra stop ($)</label><input id="rateStop" class="control" type="number" min="0" step="1" value="25"></div>
+              <div class="field"><label>Fuel (%)</label><input id="fuelPct" class="control" type="number" min="0" step="1" value="12"></div>
+              <div class="field"><label>Minimum ($)</label><input id="minimumQuote" class="control" type="number" min="0" step="5" value="95"></div>
+            </div>
+            <div class="grid2" style="margin-top:9px">
+              <div class="field"><label>Rush markup (%)</label><input id="rushPct" class="control" type="number" min="0" step="1" value="20"></div>
+              <div class="field"><label>Heavy-load threshold (lb)</label><input id="heavyThreshold" class="control" type="number" min="0" step="100" value="1500"></div>
+            </div>
+          </section>
+
+          <div class="calc-wrap">
+            <button id="calculateBtn" class="calc"><span class="ico" data-icon="route"></span><span>Calculate route &amp; estimate</span></button>
+            <div id="estimateCard" class="estimate-card">
+              <div class="estimate-top"><div><div class="estimate-label">Estimated shipment</div><div id="estimateValue" class="estimate-value">$—</div></div><div id="estimateMeta" class="estimate-meta">—</div></div>
+              <div id="breakdown" class="breakdown"></div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="map-wrap">
+        <div id="map" class="map"></div>
+        <div id="emptyMap" class="empty-map"><div class="em-icon">↗</div><h2>Build a freight route.</h2><p>Add a pickup and drop-off, then Baleport will map the route, check selected restrictions, and calculate an estimate.</p></div>
+        <div class="map-ui">
+          <div class="map-top">
+            <div class="metrics">
+              <div class="metric"><div class="k">Distance</div><div id="metricDistance" class="v">—</div></div>
+              <div class="metric"><div class="k">Drive time</div><div id="metricDuration" class="v">—</div></div>
+              <div class="metric"><div class="k">Estimate</div><div id="metricQuote" class="v">—</div></div>
+            </div>
+            <div class="map-tools"><button id="fitBtn" class="map-pill"><span class="ico" data-icon="fit"></span>Fit route</button><button id="alertBtn" class="map-pill"><span class="ico" data-icon="alert"></span><span id="alertCount">0 alerts</span></button></div>
+          </div>
+          <div id="routeOptions" class="route-options"></div>
+          <div id="alertsPanel" class="alerts-panel"><div class="alerts-head"><span>Route alerts</span><button id="closeAlerts" class="modal-close">×</button></div><div id="alertsBody"></div></div>
+          <section id="directionsPanel" class="directions-panel" aria-label="Turn-by-turn directions">
+            <div class="directions-head">
+              <div><div class="eyebrow">Dispatch route sheet</div><h2>Turn-by-turn directions</h2><div id="directionsSummary" class="sub">Calculate a route to generate directions.</div></div>
+              <button id="closeDirections" class="modal-close" aria-label="Close directions">×</button>
+            </div>
+            <div class="directions-actions">
+              <button id="copyDirectionsBtn" class="btn small">Copy</button>
+              <button id="exportDirectionsTxtBtn" class="btn small">Export TXT</button>
+              <button id="exportDirectionsCsvBtn" class="btn small">Export CSV</button>
+              <button id="printDirectionsBtn" class="btn small"><span class="ico" data-icon="print"></span>Print</button>
+              <button id="shareDirectionsBtn" class="btn small primary"><span class="ico" data-icon="share"></span>Email</button>
+            </div>
+            <div id="directionsBody" class="directions-body"><div class="directions-empty">Calculate a route to view its maneuver-by-maneuver directions.</div></div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div id="shareModal" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div class="modal">
+      <div class="modal-head"><div><div class="eyebrow">Send route</div><h2>Share via email</h2></div><button class="modal-close" data-close-share="">×</button></div>
+      <div class="modal-body">
+        <div class="field"><label>Recipient email</label><input id="shareEmail" class="control" type="email" placeholder="dispatch@example.com"></div>
+        <div id="sharePreview" class="share-preview"></div>
+        <label style="display:flex;align-items:flex-start;gap:8px;font-size:10px;color:#59616c;margin:2px 0 12px"><input id="shareDirectionsCheck" type="checkbox" checked="" style="margin-top:1px"> Include the current turn-by-turn directions and any dispatch edits.</label>
+        <div class="field"><label>Message (optional)</label><textarea id="shareNote" class="control" placeholder="Add pickup instructions, quote context, or a dispatch note."></textarea></div>
+      </div>
+      <div class="modal-foot"><button class="btn" data-close-share="">Cancel</button><button id="sendShareBtn" class="btn primary"><span class="ico" data-icon="send"></span>Send route</button></div>
+    </div>
+  </div>
+  <section id="printSheet" class="print-sheet"></section>
+  <div id="toast" class="toast"></div>
+
+<script>
+  const MAPBOX_TOKEN = <?!= JSON.stringify(mapboxToken) ?>;
+  const SHARED_ROUTE_TOKEN = <?!= JSON.stringify(sharedRoute) ?>;
+  const APP_URL = <?!= JSON.stringify(appUrl) ?>;
+  const STORAGE_KEY = 'baleport.routes.v1';
+
+  const ICONS = {
+    plus:'<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+    share:'<svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.6 6.8-4M8.6 13.4l6.8 4"/></svg>',
+    print:'<svg viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v7H6z"/></svg>',
+    directions:'<svg viewBox="0 0 24 24"><path d="M6 3v18M18 3v18"/><path d="M6 7h7l5 5-5 5H6"/></svg>',
+    route:'<svg viewBox="0 0 24 24"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M6 17c0-5 12-2 12-10"/></svg>',
+    spark:'<svg viewBox="0 0 24 24"><path d="m12 3 1.4 4.1L17.5 8.5l-4.1 1.4L12 14l-1.4-4.1-4.1-1.4 4.1-1.4L12 3Z"/><path d="m19 14 .8 2.2L22 17l-2.2.8L19 20l-.8-2.2L16 17l2.2-.8L19 14Z"/></svg>',
+    fit:'<svg viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M8 21H3v-5M16 21h5v-5"/></svg>',
+    alert:'<svg viewBox="0 0 24 24"><path d="M10.3 3.5 2.4 17.2A2 2 0 0 0 4.1 20h15.8a2 2 0 0 0 1.7-2.8L13.7 3.5a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>',
+    send:'<svg viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>'
+  };
+
+  const VEHICLES = {
+    cargo:{label:'Cargo van',height:6.8,width:6.7,length:18.5,curb:5500,payload:2500,factor:1},
+    sprinter:{label:'High-roof cargo van',height:9.4,width:6.8,length:22.5,curb:6500,payload:3500,factor:1.08},
+    box12:{label:'12′ box truck',height:10.8,width:8.0,length:22.0,curb:9000,payload:5000,factor:1.18},
+    box16:{label:'16′ box truck',height:11.5,width:8.0,length:26.0,curb:11000,payload:7500,factor:1.28},
+    custom:{label:'Custom vehicle',height:9,width:7,length:20,curb:6500,payload:3500,factor:1}
+  };
+
+  const RESTRICTIONS = [
+    ['toll','Avoid tolls','Best-effort toll-road exclusion'],
+    ['motorway','Avoid interstates / motorways','Avoid motorway-class roads'],
+    ['ferry','Avoid ferries','Exclude ferry segments'],
+    ['unpaved','Avoid unpaved roads','Exclude dirt roads / tracks'],
+    ['tunnel','Avoid tunnels','Beta Mapbox exclusion'],
+    ['state_border','Avoid state borders','Beta; useful for intrastate planning'],
+    ['country_border','Avoid country borders','Beta controlled-border exclusion']
+  ];
+
+  const defaultRoute = (index=1) => ({
+    id:'r_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7),
+    name:'Route '+String(index).padStart(2,'0'),
+    stops:[emptyStop(),emptyStop()],
+    shipment:{cargoType:'General freight',service:'standard',weight:500,pieces:1,pallets:0,readyDate:todayString(),readyTime:'09:00'},
+    vehicle:{preset:'cargo',height:VEHICLES.cargo.height,width:VEHICLES.cargo.width,length:VEHICLES.cargo.length,curb:VEHICLES.cargo.curb,payload:VEHICLES.cargo.payload},
+    settings:{profile:'traffic',exclude:[],approach:'unrestricted',alternatives:true},
+    rates:{base:45,mile:1.55,hour:18,stop:25,fuelPct:12,minimum:95,rushPct:20,heavyThreshold:1500},
+    result:null,
+    selectedAlternative:0,
+    directionEdits:{},
+    updatedAt:Date.now()
+  });
+  function emptyStop(){return {address:'',coords:null};}
+  function todayString(){const d=new Date();const offset=d.getTimezoneOffset();return new Date(d.getTime()-offset*60000).toISOString().slice(0,10)}
+
+  let state={routes:[],activeId:null};
+  let map=null, markers=[], searchTimers={}, activeSuggestions=null, toastTimer=null;
+
+  const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+  const el=id=>document.getElementById(id);
+  const activeRoute=()=>state.routes.find(r=>r.id===state.activeId) || state.routes[0];
+  const num=(v,d=0)=>Number.isFinite(Number(v))?Number(v):d;
+  const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
+  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+  const money=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0}).format(n||0);
+  const miles=m=>m/1609.344;
+  const ftToM=ft=>num(ft)*0.3048;
+  const lbsToMetricTons=lb=>num(lb)*0.00045359237;
+  const formatDuration=sec=>{sec=num(sec);const h=Math.floor(sec/3600),m=Math.round((sec%3600)/60);return h?`${h}h ${m}m`:`${m} min`};
+
+  function init(){
+    renderIcons();
+    if(!MAPBOX_TOKEN){el('tokenScreen').classList.add('show');return;}
+    loadState();
+    buildRestrictionToggles();
+    bindStaticEvents();
+    mapboxgl.accessToken=MAPBOX_TOKEN;
+    map=new mapboxgl.Map({container:'map',style:'mapbox://styles/mapbox/light-v11',center:[-96.8,32.8],zoom:4.3,attributionControl:true});
+    map.addControl(new mapboxgl.NavigationControl({showCompass:false}),'bottom-right');
+    map.on('load',()=>{renderAll(); if(activeRoute().result) drawResult(activeRoute());});
+    if(SHARED_ROUTE_TOKEN){
+      try{importSharedRoute(SHARED_ROUTE_TOKEN);showToast('Shared route loaded');}catch(err){showToast('Could not load shared route',true)}
+    } else renderAll();
+  }
+
+  function renderIcons(root=document){root.querySelectorAll('[data-icon]').forEach(n=>{const key=n.getAttribute('data-icon');n.innerHTML=ICONS[key]||''})}
+
+  function loadState(){
+    try{const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');if(saved&&Array.isArray(saved.routes)&&saved.routes.length){state=saved}}catch(e){}
+    if(!state.routes.length){const r=defaultRoute(1);state.routes=[r];state.activeId=r.id}
+    state.routes.forEach(r=>{if(!r.directionEdits||typeof r.directionEdits!=='object')r.directionEdits={}});
+    if(!state.routes.some(r=>r.id===state.activeId))state.activeId=state.routes[0].id;
+  }
+  function saveState(){activeRoute().updatedAt=Date.now();localStorage.setItem(STORAGE_KEY,JSON.stringify(state))}
+
+  function buildRestrictionToggles(){
+    el('restrictionToggles').innerHTML=RESTRICTIONS.map(([key,title,desc])=>`<div class="toggle-row"><div class="toggle-copy"><strong>${esc(title)}</strong><span>${esc(desc)}</span></div><button class="switch" data-exclude="${key}" aria-label="${esc(title)}"></button></div>`).join('');
+    el('restrictionToggles').addEventListener('click',e=>{const btn=e.target.closest('[data-exclude]');if(!btn)return;const r=activeRoute(),key=btn.dataset.exclude;const set=new Set(r.settings.exclude||[]);set.has(key)?set.delete(key):set.add(key);r.settings.exclude=[...set];r.result=null;saveState();renderSettings();clearMapResult();});
+  }
+
+  function bindStaticEvents(){
+    el('addRouteBtn').onclick=addRoute;
+    el('directionsBtn').onclick=openDirections;
+    el('shareBtn').onclick=openShare;
+    el('printBtn').onclick=printDirections;
+    el('topCalculate').onclick=calculateRoute;
+    el('calculateBtn').onclick=calculateRoute;
+    el('fitBtn').onclick=fitActiveRoute;
+    el('alertBtn').onclick=()=>el('alertsPanel').classList.toggle('show');
+    el('closeAlerts').onclick=()=>el('alertsPanel').classList.remove('show');
+    el('addStopBtn').onclick=addStop;
+    el('optimizeBtn').onclick=optimizeStops;
+    el('routeName').addEventListener('input',e=>{activeRoute().name=e.target.value;saveState();renderRouteTabs()});
+    el('routeName').addEventListener('blur',e=>{if(!e.target.value.trim()){e.target.value='Untitled route';activeRoute().name=e.target.value;saveState();renderRouteTabs()}});
+    el('vehiclePreset').onchange=e=>applyVehiclePreset(e.target.value);
+    ['cargoType','serviceLevel','cargoWeight','pieces','pallets','readyDate','readyTime','vehicleHeight','vehicleWidth','vehicleLength','curbWeight','payloadCapacity','approach','alternatives','rateBase','rateMile','rateHour','rateStop','fuelPct','minimumQuote','rushPct','heavyThreshold'].forEach(id=>{
+      el(id).addEventListener('change',syncFormToState);el(id).addEventListener('input',()=>{if(['cargoWeight','vehicleHeight','vehicleWidth','vehicleLength','curbWeight','payloadCapacity'].includes(id))updateCapacity();});
+    });
+    el('profileSeg').addEventListener('click',e=>{const b=e.target.closest('[data-profile]');if(!b)return;activeRoute().settings.profile=b.dataset.profile;activeRoute().result=null;saveState();renderSettings();clearMapResult();});
+    document.addEventListener('click',e=>{if(activeSuggestions&&!e.target.closest('.stop-field'))closeSuggestions()});
+    $$('[data-close-share]').forEach(b=>b.onclick=closeShare);
+    el('shareModal').addEventListener('click',e=>{if(e.target===el('shareModal'))closeShare()});
+    el('sendShareBtn').onclick=sendShare;
+    el('closeDirections').onclick=closeDirections;
+    el('copyDirectionsBtn').onclick=copyDirections;
+    el('exportDirectionsTxtBtn').onclick=()=>exportDirections('txt');
+    el('exportDirectionsCsvBtn').onclick=()=>exportDirections('csv');
+    el('printDirectionsBtn').onclick=printDirections;
+    el('shareDirectionsBtn').onclick=openShare;
+    el('directionsBody').addEventListener('input',directionInput);
+    el('directionsBody').addEventListener('click',directionClick);
+    window.addEventListener('keydown',e=>{if(e.key==='Escape'){closeSuggestions();closeShare();closeDirections();el('alertsPanel').classList.remove('show')}});
+  }
+
+  function renderAll(){renderRouteTabs();renderForm();renderResult(activeRoute());renderDirections(activeRoute());}
+  function renderRouteTabs(){
+    const html=state.routes.map((r,i)=>{const res=r.result;const mini=res?`${miles(res.routes[r.selectedAlternative||0]?.distance||0).toFixed(0)} mi`:'Draft';return `<button class="route-tab ${r.id===state.activeId?'active':''}" data-route-id="${r.id}"><span class="dot"></span><span>${esc(r.name||'Route '+(i+1))}</span><span class="mini">${mini}</span></button>`}).join('');
+    el('routeStrip').innerHTML=html+`<button class="route-tab" data-add-inline="1"><span class="dot"></span><span>＋</span></button>`;
+    el('mobileRoutebar').innerHTML=html;
+    $$('[data-route-id]').forEach(b=>b.onclick=()=>switchRoute(b.dataset.routeId));
+    const addInline=$('[data-add-inline]');if(addInline)addInline.onclick=addRoute;
+  }
+  function switchRoute(id){syncFormToState();state.activeId=id;saveState();closeDirections();clearMapResult();renderAll();if(activeRoute().result)drawResult(activeRoute())}
+  function addRoute(){syncFormToState();const r=defaultRoute(state.routes.length+1);state.routes.push(r);state.activeId=r.id;saveState();clearMapResult();renderAll();showToast('New route added')}
+  function deleteRoute(id){if(state.routes.length===1){showToast('Keep at least one route',true);return}const idx=state.routes.findIndex(r=>r.id===id);state.routes.splice(idx,1);state.activeId=state.routes[Math.max(0,idx-1)].id;saveState();clearMapResult();renderAll()}
+
+  function renderForm(){
+    const r=activeRoute();if(!r)return;
+    el('routeName').value=r.name||'';
+    renderStops();
+    el('cargoType').value=r.shipment.cargoType||'General freight';el('serviceLevel').value=r.shipment.service||'standard';el('cargoWeight').value=r.shipment.weight??500;el('pieces').value=r.shipment.pieces??1;el('pallets').value=r.shipment.pallets??0;el('readyDate').value=r.shipment.readyDate||todayString();el('readyTime').value=r.shipment.readyTime||'09:00';
+    el('vehiclePreset').value=r.vehicle.preset||'custom';el('vehicleHeight').value=r.vehicle.height??'';el('vehicleWidth').value=r.vehicle.width??'';el('vehicleLength').value=r.vehicle.length??'';el('curbWeight').value=r.vehicle.curb??'';el('payloadCapacity').value=r.vehicle.payload??'';
+    el('approach').value=r.settings.approach||'unrestricted';el('alternatives').value=String(r.settings.alternatives!==false);
+    el('rateBase').value=r.rates.base??45;el('rateMile').value=r.rates.mile??1.55;el('rateHour').value=r.rates.hour??18;el('rateStop').value=r.rates.stop??25;el('fuelPct').value=r.rates.fuelPct??12;el('minimumQuote').value=r.rates.minimum??95;el('rushPct').value=r.rates.rushPct??20;el('heavyThreshold').value=r.rates.heavyThreshold??1500;
+    renderSettings();updateCapacity();updateStatus();
+  }
+  function syncFormToState(){
+    const r=activeRoute();if(!r)return;
+    r.shipment={cargoType:el('cargoType').value,service:el('serviceLevel').value,weight:num(el('cargoWeight').value),pieces:num(el('pieces').value,1),pallets:num(el('pallets').value),readyDate:el('readyDate').value,readyTime:el('readyTime').value};
+    r.vehicle={preset:el('vehiclePreset').value,height:num(el('vehicleHeight').value),width:num(el('vehicleWidth').value),length:num(el('vehicleLength').value),curb:num(el('curbWeight').value),payload:num(el('payloadCapacity').value)};
+    r.settings.approach=el('approach').value;r.settings.alternatives=el('alternatives').value==='true';
+    r.rates={base:num(el('rateBase').value),mile:num(el('rateMile').value),hour:num(el('rateHour').value),stop:num(el('rateStop').value),fuelPct:num(el('fuelPct').value),minimum:num(el('minimumQuote').value),rushPct:num(el('rushPct').value),heavyThreshold:num(el('heavyThreshold').value)};
+    saveState();updateCapacity();
+  }
+  function renderSettings(){
+    const r=activeRoute();$$('#profileSeg button').forEach(b=>b.classList.toggle('active',b.dataset.profile===r.settings.profile));$$('[data-exclude]').forEach(b=>b.classList.toggle('on',(r.settings.exclude||[]).includes(b.dataset.exclude)));
+  }
+  function applyVehiclePreset(key){const r=activeRoute(),p=VEHICLES[key];if(!p)return;r.vehicle={preset:key,height:p.height,width:p.width,length:p.length,curb:p.curb,payload:p.payload};r.result=null;saveState();renderForm();clearMapResult()}
+  function updateCapacity(){
+    const w=num(el('cargoWeight').value),cap=num(el('payloadCapacity').value),curb=num(el('curbWeight').value),pct=cap?Math.round((w/cap)*100):0;el('capBar').style.width=clamp(pct,0,100)+'%';el('capBar').classList.toggle('over',pct>100);el('capCopy').textContent=cap?`${pct}% payload used`:'Set payload capacity';el('totalWeightCopy').textContent=`Total route weight ${(curb+w).toLocaleString()} lb`;
+  }
+  function updateStatus(text,mode=''){const r=activeRoute();if(text){el('statusText').textContent=text;el('statusDot').className='status-dot '+mode;return}const resolved=r.stops.filter(s=>s.coords).length;if(r.result){el('statusText').textContent='Estimate ready · saved locally';el('statusDot').className='status-dot ready'}else if(resolved>=2){el('statusText').textContent='Ready to calculate';el('statusDot').className='status-dot ready'}else{el('statusText').textContent='Add pickup and drop-off';el('statusDot').className='status-dot'}}
+
+  function renderStops(){
+    const r=activeRoute();el('stopList').innerHTML=r.stops.map((s,i)=>{const isFirst=i===0,isLast=i===r.stops.length-1;const label=isFirst?'P':isLast?'D':i;return `<div class="stop-row" data-stop-index="${i}"><div class="stop-index">${label}</div><div class="stop-field"><input class="address-input ${s.coords?'resolved':''}" data-address-index="${i}" value="${esc(s.address)}" placeholder="${isFirst?'Pickup address':isLast?'Drop-off address':'Stop '+i+' address'}" autocomplete="off">${s.coords?'<span class="resolved-check">✓</span>':''}<div class="suggestions" data-suggest-index="${i}" style="display:none"></div></div>${(!isFirst&&!isLast)?`<button class="remove-stop" data-remove-stop="${i}" title="Remove stop">×</button>`:'<span></span>'}</div>`}).join('');
+    $$('[data-address-index]').forEach(input=>{input.addEventListener('input',addressInput);input.addEventListener('focus',e=>{if(e.target.value.trim().length>=3)addressInput(e)})});
+    $$('[data-remove-stop]').forEach(b=>b.onclick=()=>removeStop(num(b.dataset.removeStop)));
+  }
+  function addStop(){const r=activeRoute();if(r.stops.length>=25){showToast('Mapbox Directions supports up to 25 coordinates',true);return}r.stops.splice(r.stops.length-1,0,emptyStop());r.result=null;saveState();renderStops();updateStatus();clearMapResult()}
+  function removeStop(i){const r=activeRoute();if(i<=0||i>=r.stops.length-1)return;r.stops.splice(i,1);r.result=null;saveState();renderStops();updateStatus();clearMapResult()}
+  function addressInput(e){
+    const input=e.target,i=num(input.dataset.addressIndex),r=activeRoute(),q=input.value.trim();r.stops[i].address=input.value;r.stops[i].coords=null;r.result=null;saveState();clearTimeout(searchTimers[i]);clearMapResult();renderResult(r);updateStatus();
+    const box=document.querySelector(`[data-suggest-index="${i}"]`);if(q.length<3){box.style.display='none';return}searchTimers[i]=setTimeout(()=>searchAddress(q,i,box),320);
+  }
+  async function searchAddress(q,i,box){
+    try{const u=new URL('https://api.mapbox.com/search/geocode/v6/forward');u.searchParams.set('q',q);u.searchParams.set('access_token',MAPBOX_TOKEN);u.searchParams.set('limit','5');u.searchParams.set('language','en');const res=await fetch(u);if(!res.ok)throw new Error('Address lookup failed');const data=await res.json();const features=data.features||[];box.innerHTML=features.length?features.map((f,idx)=>{const p=f.properties||{},main=p.name_preferred||p.name||f.text||'Location',full=p.full_address||[main,p.place_formatted].filter(Boolean).join(', ')||f.place_name||main;return `<div class="suggestion" data-pick="${idx}"><strong>${esc(main)}</strong><span>${esc(full)}</span></div>`}).join(''):'<div class="suggestion"><span>No matches found</span></div>';box.style.display='block';activeSuggestions=box;box.querySelectorAll('[data-pick]').forEach(n=>n.onclick=()=>pickSuggestion(features[num(n.dataset.pick)],i));}
+    catch(err){box.innerHTML='<div class="suggestion"><span>Address search unavailable</span></div>';box.style.display='block'}
+  }
+  function featureLabel(f){const p=f.properties||{},main=p.name_preferred||p.name||f.text||'';return p.full_address||[main,p.place_formatted].filter(Boolean).join(', ')||f.place_name||main}
+  function pickSuggestion(f,i){const r=activeRoute(),coords=f.geometry&&f.geometry.coordinates;if(!coords)return;r.stops[i]={address:featureLabel(f),coords:[num(coords[0]),num(coords[1])]};r.result=null;saveState();closeSuggestions();renderStops();updateStatus();clearMapResult();drawStopMarkers(r);if(r.stops.filter(s=>s.coords).length>=2)fitStops(r)}
+  function closeSuggestions(){if(activeSuggestions)activeSuggestions.style.display='none';activeSuggestions=null}
+  async function ensureResolvedStops(r){for(let i=0;i<r.stops.length;i++){const s=r.stops[i];if(s.coords)continue;if(!s.address.trim())throw new Error(`Enter ${i===0?'a pickup':i===r.stops.length-1?'a drop-off':'Stop '+i} address.`);const u=new URL('https://api.mapbox.com/search/geocode/v6/forward');u.searchParams.set('q',s.address);u.searchParams.set('access_token',MAPBOX_TOKEN);u.searchParams.set('limit','1');u.searchParams.set('language','en');const res=await fetch(u);const data=await res.json();const f=(data.features||[])[0];if(!f)throw new Error(`Could not locate: ${s.address}`);r.stops[i]={address:featureLabel(f),coords:f.geometry.coordinates};}saveState();renderStops()}
+
+  async function optimizeStops(){
+    const r=activeRoute();syncFormToState();if(r.stops.length<3){showToast('Add at least one intermediate stop to optimize',true);return}if(r.stops.length>12){showToast('Optimization v1 supports up to 12 coordinates',true);return}
+    try{updateStatus('Resolving stops…','loading');await ensureResolvedStops(r);updateStatus('Optimizing stop order…','loading');el('optimizeBtn').disabled=true;const coords=r.stops.map(s=>s.coords.join(',')).join(';');const url=`https://api.mapbox.com/optimized-trips/v1/mapbox/driving/${coords}?source=first&destination=last&roundtrip=false&access_token=${encodeURIComponent(MAPBOX_TOKEN)}`;const res=await fetch(url);const data=await res.json();if(!res.ok||data.code!=='Ok')throw new Error(data.message||data.code||'Could not optimize route');const ordered=data.waypoints.map((wp,inputIndex)=>({inputIndex,order:wp.waypoint_index})).sort((a,b)=>a.order-b.order).map(x=>r.stops[x.inputIndex]);r.stops=ordered;r.result=null;saveState();renderStops();clearMapResult();drawStopMarkers(r);fitStops(r);showToast('Stop order optimized');updateStatus();}
+    catch(err){showToast(err.message||'Optimization failed',true);updateStatus()}finally{el('optimizeBtn').disabled=false}
+  }
+
+  async function calculateRoute(){
+    const r=activeRoute();syncFormToState();if(r.stops.length<2)return;
+    const cargo=r.shipment.weight||0;if(r.vehicle.payload>0&&cargo>r.vehicle.payload){showToast('Cargo weight exceeds the configured payload capacity',true);return}
+    try{
+      setCalcLoading(true);updateStatus('Resolving route…','loading');await ensureResolvedStops(r);
+      const coords=r.stops.map(s=>s.coords.join(',')).join(';');const profile=r.settings.profile==='traffic'?'mapbox/driving-traffic':'mapbox/driving';const url=new URL(`https://api.mapbox.com/directions/v5/${profile}/${coords}`);
+      url.searchParams.set('access_token',MAPBOX_TOKEN);url.searchParams.set('geometries','geojson');url.searchParams.set('overview','full');url.searchParams.set('steps','true');url.searchParams.set('language','en');url.searchParams.set('roundabout_exits','true');url.searchParams.set('notifications','all');url.searchParams.set('alternatives',String(r.settings.alternatives!==false));
+      if(r.settings.exclude&&r.settings.exclude.length)url.searchParams.set('exclude',r.settings.exclude.join(','));
+      if(r.vehicle.height>0)url.searchParams.set('max_height',ftToM(r.vehicle.height).toFixed(3));
+      if(r.vehicle.width>0)url.searchParams.set('max_width',ftToM(r.vehicle.width).toFixed(3));
+      const totalWeight=(r.vehicle.curb||0)+(r.shipment.weight||0);if(totalWeight>0)url.searchParams.set('max_weight',lbsToMetricTons(totalWeight).toFixed(3));
+      if(r.settings.approach==='curb')url.searchParams.set('approaches',r.stops.map((_,i)=>i===r.stops.length-1?'curb':'unrestricted').join(';'));
+      if(r.shipment.readyDate&&r.shipment.readyTime){const dt=`${r.shipment.readyDate}T${r.shipment.readyTime}`;url.searchParams.set('depart_at',dt)}
+      updateStatus('Calculating best route…','loading');const res=await fetch(url);const data=await res.json();if(!res.ok||data.code!=='Ok'||!data.routes?.length)throw new Error(data.message||'No route could be found with these constraints.');
+      r.result={routes:data.routes,createdAt:Date.now()};r.selectedAlternative=0;r.directionEdits={};saveState();renderRouteTabs();drawResult(r);renderResult(r);renderDirections(r);updateStatus();showToast('Route estimate and directions updated');
+    }catch(err){showToast(err.message||'Could not calculate route',true);updateStatus()}finally{setCalcLoading(false)}
+  }
+  function setCalcLoading(on){el('calculateBtn').disabled=on;el('topCalculate').disabled=on;el('calculateBtn').querySelector('span:last-child').textContent=on?'Calculating…':'Calculate route & estimate'}
+
+  function quoteFor(r,route){
+    const distanceMiles=miles(route.distance),hours=route.duration/3600,extraStops=Math.max(0,r.stops.length-2);const rate=r.rates,preset=VEHICLES[r.vehicle.preset]||VEHICLES.custom,factor=preset.factor||1;
+    const base=rate.base,mileageCharge=distanceMiles*rate.mile*factor,timeCharge=hours*rate.hour,stopCharge=extraStops*rate.stop;
+    const heavyUnits=Math.max(0,Math.ceil(((r.shipment.weight||0)-(rate.heavyThreshold||0))/500));const heavyCharge=heavyUnits*15;
+    const subtotal=base+mileageCharge+timeCharge+stopCharge+heavyCharge;const fuel=subtotal*(rate.fuelPct/100);const rush=r.shipment.service==='rush'?(subtotal+fuel)*(rate.rushPct/100):0;const calculated=subtotal+fuel+rush;const total=Math.max(rate.minimum||0,calculated);
+    return {total,base,mileageCharge,timeCharge,stopCharge,heavyCharge,fuel,rush,minimumApplied:total>calculated+.01,distanceMiles,hours,extraStops};
+  }
+  function collectWarnings(r,route){
+    const notes=[];(route.legs||[]).forEach(leg=>(leg.notifications||[]).forEach(n=>{const msg=n.details?.message||humanizeSubtype(n.subtype);if(msg&&!notes.some(x=>x.message===msg))notes.push({type:n.type||'alert',subtype:n.subtype||'',message:msg})}));
+    if(r.vehicle.length>0)notes.push({type:'alert',subtype:'lengthAdvisory',message:`Vehicle length (${r.vehicle.length} ft) is advisory only; this value is not enforced by Mapbox Directions.`});
+    if(r.vehicle.payload>0&&r.shipment.weight>r.vehicle.payload)notes.push({type:'violation',subtype:'payload',message:'Configured cargo weight exceeds this vehicle preset’s payload capacity.'});
+    return notes;
+  }
+  function humanizeSubtype(s){return String(s||'Route notification').replace(/([a-z])([A-Z])/g,'$1 $2')}
+  function renderResult(r){
+    if(!r||!r.result||!r.result.routes?.length){el('estimateCard').classList.remove('show');el('metricDistance').textContent='—';el('metricDuration').textContent='—';el('metricQuote').textContent='—';el('routeOptions').classList.remove('show');renderAlerts([]);renderDirections(r);return}
+    const idx=clamp(r.selectedAlternative||0,0,r.result.routes.length-1),route=r.result.routes[idx],q=quoteFor(r,route),warnings=collectWarnings(r,route);
+    el('estimateCard').classList.add('show');el('estimateValue').textContent=money(q.total);el('estimateMeta').innerHTML=`${q.distanceMiles.toFixed(1)} mi<br>${formatDuration(route.duration)}`;
+    const rows=[['Base',q.base],['Mileage',q.mileageCharge],['Drive-time component',q.timeCharge],q.stopCharge?['Additional stops',q.stopCharge]:null,q.heavyCharge?['Heavy-load component',q.heavyCharge]:null,['Fuel adjustment',q.fuel],q.rush?['Rush markup',q.rush]:null,q.minimumApplied?['Minimum quote applied',q.total]:null].filter(Boolean);
+    el('breakdown').innerHTML=rows.map(([k,v],i)=>`<div class="break-row"><span>${esc(k)}</span><span>${money(v)}</span></div>`).join('')+`<div class="break-row total"><span>Estimated total</span><span>${money(q.total)}</span></div>`;
+    el('metricDistance').textContent=q.distanceMiles.toFixed(1)+' mi';el('metricDuration').textContent=formatDuration(route.duration);el('metricQuote').textContent=money(q.total);renderAlternatives(r);renderAlerts(warnings);
+  }
+  function renderAlternatives(r){
+    const routes=r.result?.routes||[];if(routes.length<=1){el('routeOptions').classList.remove('show');return}el('routeOptions').innerHTML=routes.map((route,i)=>{const q=quoteFor(r,route);return `<button class="option-card ${i===(r.selectedAlternative||0)?'active':''}" data-alt="${i}"><div class="option-title">${i===0?'Recommended':'Alternative '+i}${i===0?'<span class="best">Best</span>':''}</div><div class="option-meta"><span>${q.distanceMiles.toFixed(1)} mi</span><span>${formatDuration(route.duration)}</span><span>${money(q.total)}</span></div></button>`}).join('');el('routeOptions').classList.add('show');$$('[data-alt]').forEach(b=>b.onclick=()=>selectAlternative(num(b.dataset.alt)));
+  }
+  function selectAlternative(i){const r=activeRoute();r.selectedAlternative=i;saveState();drawResult(r);renderResult(r);renderDirections(r)}
+  function renderAlerts(warnings){el('alertCount').textContent=`${warnings.length} alert${warnings.length===1?'':'s'}`;el('alertsBody').innerHTML=warnings.length?warnings.map(w=>`<div class="alert-item ${w.type==='violation'?'violation':''}">${esc(w.message)}</div>`).join(''):'<div class="alert-item" style="color:#68707d;background:#fff">No route alerts returned for the selected route.</div>';if(!warnings.length)el('alertsPanel').classList.remove('show')}
+
+  function clearMapResult(){if(!map)return;['route-active','route-alt-0','route-alt-1','route-alt-2'].forEach(id=>{if(map.getLayer(id))map.removeLayer(id);if(map.getSource(id))map.removeSource(id)});markers.forEach(m=>m.remove());markers=[];el('emptyMap').classList.remove('hide');el('routeOptions').classList.remove('show');renderResult(activeRoute());drawStopMarkers(activeRoute())}
+  function drawStopMarkers(r){if(!map||!map.loaded())return;markers.forEach(m=>m.remove());markers=[];r.stops.forEach((s,i)=>{if(!s.coords)return;const node=document.createElement('div');node.className='marker '+(i===0?'start':i===r.stops.length-1?'end':'');node.textContent=i===0?'P':i===r.stops.length-1?'D':i;const m=new mapboxgl.Marker({element:node}).setLngLat(s.coords).setPopup(new mapboxgl.Popup({offset:16}).setHTML(`<strong style="font-size:10px">${i===0?'Pickup':i===r.stops.length-1?'Drop-off':'Stop '+i}</strong><div style="font-size:10px;color:#66707b;margin-top:3px">${esc(s.address)}</div>`)).addTo(map);markers.push(m)})}
+  function drawResult(r){
+    if(!map||!map.loaded()||!r.result)return;clearMapLayersOnly();drawStopMarkers(r);const selected=r.selectedAlternative||0;r.result.routes.forEach((route,i)=>{const id=i===selected?'route-active':'route-alt-'+i;map.addSource(id,{type:'geojson',data:{type:'Feature',properties:{},geometry:route.geometry}});map.addLayer({id,type:'line',source:id,layout:{'line-join':'round','line-cap':'round'},paint:{'line-color':i===selected?'#15181d':'#8d949d','line-width':i===selected?5:3,'line-opacity':i===selected?.96:.42}})});el('emptyMap').classList.add('hide');fitActiveRoute();
+  }
+  function clearMapLayersOnly(){if(!map)return;['route-active','route-alt-0','route-alt-1','route-alt-2'].forEach(id=>{if(map.getLayer(id))map.removeLayer(id);if(map.getSource(id))map.removeSource(id)})}
+  function fitStops(r){if(!map||!r)return;const coords=r.stops.filter(s=>s.coords).map(s=>s.coords);if(!coords.length)return;const b=coords.reduce((bounds,c)=>bounds.extend(c),new mapboxgl.LngLatBounds(coords[0],coords[0]));map.fitBounds(b,{padding:{top:90,bottom:100,left:70,right:70},maxZoom:12,duration:700})}
+  function fitActiveRoute(){const r=activeRoute(),route=r?.result?.routes?.[r.selectedAlternative||0];if(route?.geometry?.coordinates?.length){const coords=route.geometry.coordinates,b=coords.reduce((bounds,c)=>bounds.extend(c),new mapboxgl.LngLatBounds(coords[0],coords[0]));map.fitBounds(b,{padding:{top:100,bottom:120,left:80,right:80},duration:650})}else fitStops(r)}
+
+  function directionKey(altIndex,legIndex,stepIndex){return `${altIndex}:${legIndex}:${stepIndex}`}
+  function originalInstruction(step){return step?.maneuver?.instruction||step?.name||'Continue'}
+  function effectiveInstruction(r,altIndex,legIndex,stepIndex,step){const key=directionKey(altIndex,legIndex,stepIndex);return (r.directionEdits&&Object.prototype.hasOwnProperty.call(r.directionEdits,key))?r.directionEdits[key]:originalInstruction(step)}
+  function directionDistance(meters){const mi=miles(num(meters));if(mi<.1)return `${Math.max(0,Math.round(num(meters)*3.28084/10)*10).toLocaleString()} ft`;return `${mi.toFixed(1)} mi`}
+  function routeDirections(r){
+    if(!r?.result?.routes?.length)return [];
+    const alt=clamp(r.selectedAlternative||0,0,r.result.routes.length-1),route=r.result.routes[alt];
+    return (route.legs||[]).map((leg,legIndex)=>({
+      legIndex,
+      label:`Leg ${legIndex+1}: ${r.stops[legIndex]?.address||'Stop '+(legIndex+1)} → ${r.stops[legIndex+1]?.address||'Stop '+(legIndex+2)}`,
+      distance:leg.distance||0,duration:leg.duration||0,
+      steps:(leg.steps||[]).map((step,stepIndex)=>({
+        key:directionKey(alt,legIndex,stepIndex),legIndex,stepIndex,
+        instruction:effectiveInstruction(r,alt,legIndex,stepIndex,step),
+        original:originalInstruction(step),road:step.name||'',distance:step.distance||0,duration:step.duration||0,
+        location:step.maneuver?.location||null,type:step.maneuver?.type||'',modifier:step.maneuver?.modifier||''
+      }))
+    }));
+  }
+  function renderDirections(r){
+    if(!el('directionsBody'))return;
+    const legs=routeDirections(r);
+    if(!legs.length){el('directionsSummary').textContent='Calculate a route to generate directions.';el('directionsBody').innerHTML='<div class="directions-empty">Calculate a route to view its maneuver-by-maneuver directions.</div>';return}
+    const route=r.result.routes[r.selectedAlternative||0],q=quoteFor(r,route),count=legs.reduce((n,l)=>n+l.steps.length,0);
+    el('directionsSummary').textContent=`${count} steps · ${q.distanceMiles.toFixed(1)} mi · ${formatDuration(route.duration)} · edits save locally`;
+    el('directionsBody').innerHTML=legs.map(leg=>`<section class="leg-card"><div class="leg-head"><div class="leg-title">${esc(leg.label)}</div><div class="leg-meta">${directionDistance(leg.distance)} · ${formatDuration(leg.duration)}</div></div>${leg.steps.map((step,i)=>{const edited=step.instruction!==step.original;const loc=step.location||[];return `<div class="dir-step ${edited?'edited':''}" data-step-key="${esc(step.key)}" data-lng="${loc[0]??''}" data-lat="${loc[1]??''}"><div class="dir-num">${i+1}</div><div class="dir-content"><textarea class="dir-instruction" rows="1" data-dir-key="${esc(step.key)}" data-original="${esc(step.original)}" aria-label="Editable direction step">${esc(step.instruction)}</textarea><div class="dir-meta"><span>${directionDistance(step.distance)}</span><span>${formatDuration(step.duration)}</span>${step.road?`<span class="dir-road">${esc(step.road)}</span>`:''}<span class="dir-edited">Edited</span><button class="reset-dir" data-reset-dir="${esc(step.key)}">Reset</button></div></div></div>`}).join('')}</section>`).join('');
+    requestAnimationFrame(()=>$$('.dir-instruction').forEach(autoGrow));
+  }
+  function autoGrow(node){if(!node)return;node.style.height='auto';node.style.height=Math.min(120,node.scrollHeight)+'px'}
+  function openDirections(){const r=activeRoute();if(!r?.result){showToast('Calculate the route before opening directions',true);return}renderDirections(r);el('alertsPanel').classList.remove('show');el('directionsPanel').classList.add('show')}
+  function closeDirections(){el('directionsPanel')?.classList.remove('show')}
+  function directionInput(e){const input=e.target.closest('[data-dir-key]');if(!input)return;const r=activeRoute(),key=input.dataset.dirKey,original=input.dataset.original||'';r.directionEdits=r.directionEdits||{};const value=input.value.trim();if(!value||value===original)delete r.directionEdits[key];else r.directionEdits[key]=input.value;saveState();const row=input.closest('.dir-step');row?.classList.toggle('edited',Object.prototype.hasOwnProperty.call(r.directionEdits,key));autoGrow(input)}
+  function directionClick(e){
+    const reset=e.target.closest('[data-reset-dir]');if(reset){e.preventDefault();e.stopPropagation();const r=activeRoute(),key=reset.dataset.resetDir;if(r.directionEdits)delete r.directionEdits[key];saveState();renderDirections(r);return}
+    if(e.target.closest('textarea,button'))return;const row=e.target.closest('.dir-step');if(!row||!map||!row.dataset.lng||!row.dataset.lat)return;const lng=Number(row.dataset.lng),lat=Number(row.dataset.lat);if(Number.isFinite(lng)&&Number.isFinite(lat))map.flyTo({center:[lng,lat],zoom:15,duration:650});
+  }
+  function directionsPlainText(r){
+    const route=r?.result?.routes?.[r.selectedAlternative||0];if(!route)return '';
+    const q=quoteFor(r,route),warnings=collectWarnings(r,route).map(x=>x.message),legs=routeDirections(r),lines=[
+      'BALEPORT ROUTE SHEET',r.name||'Freight route','',`Estimate: ${money(q.total)}`,`Distance: ${q.distanceMiles.toFixed(1)} mi`,`Drive time: ${formatDuration(route.duration)}`,'','STOPS'
+    ];
+    r.stops.forEach((s,i)=>lines.push(`${i===0?'Pickup':i===r.stops.length-1?'Drop-off':'Stop '+i}: ${s.address||'—'}`));
+    lines.push('','TURN-BY-TURN DIRECTIONS');legs.forEach(leg=>{lines.push('',leg.label);leg.steps.forEach((step,i)=>lines.push(`${i+1}. ${step.instruction} — ${directionDistance(step.distance)} · ${formatDuration(step.duration)}`))});
+    if(warnings.length){lines.push('','ROUTE ALERTS');warnings.forEach(w=>lines.push(`- ${w}`))}
+    lines.push('','Estimate and routing guidance only. Verify road, vehicle, clearance, weight, permitting, and operating requirements before dispatch.');return lines.join('\n')
+  }
+  function directionsCsv(r){const rows=[['Route','Leg','Step','Instruction','Road','Distance','Duration']];routeDirections(r).forEach(leg=>leg.steps.forEach((step,i)=>rows.push([r.name,leg.legIndex+1,i+1,step.instruction,step.road,directionDistance(step.distance),formatDuration(step.duration)])));return rows.map(row=>row.map(csvCell).join(',')).join('\n')}
+  function csvCell(v){const s=String(v??'');return /[",\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s}
+  function safeFileName(name){return String(name||'baleport-route').trim().replace(/[^a-z0-9._-]+/gi,'-').replace(/^-+|-+$/g,'').slice(0,80)||'baleport-route'}
+  function downloadFile(name,content,type){const blob=new Blob([content],{type:type||'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)}
+  function exportDirections(format){const r=activeRoute();if(!r?.result){showToast('Calculate the route before exporting',true);return}const base=safeFileName(r.name);if(format==='csv')downloadFile(`${base}-directions.csv`,directionsCsv(r),'text/csv;charset=utf-8');else downloadFile(`${base}-route-sheet.txt`,directionsPlainText(r),'text/plain;charset=utf-8');showToast(`Directions exported as ${String(format).toUpperCase()}`)}
+  async function copyDirections(){const r=activeRoute();if(!r?.result){showToast('Calculate the route before copying',true);return}try{await navigator.clipboard.writeText(directionsPlainText(r));showToast('Turn-by-turn directions copied')}catch(e){const ta=document.createElement('textarea');ta.value=directionsPlainText(r);document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();showToast('Turn-by-turn directions copied')}}
+  function printDirections(){
+    const r=activeRoute();if(!r?.result){showToast('Calculate the route before printing',true);return}const route=r.result.routes[r.selectedAlternative||0],q=quoteFor(r,route),legs=routeDirections(r),warnings=collectWarnings(r,route).map(x=>x.message);
+    el('printSheet').innerHTML=`<div class="print-route-head"><div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase">Baleport · Freight route sheet</div><h1>${esc(r.name)}</h1><div class="print-summary"><span><strong>${money(q.total)}</strong> estimate</span><span><strong>${q.distanceMiles.toFixed(1)} mi</strong></span><span><strong>${formatDuration(route.duration)}</strong></span></div></div><section class="print-stops"><h2>Stops</h2>${r.stops.map((s,i)=>`<div class="print-stop"><strong>${i===0?'Pickup':i===r.stops.length-1?'Drop-off':'Stop '+i}</strong><span>${esc(s.address||'—')}</span></div>`).join('')}</section><section class="print-directions"><h2>Turn-by-turn directions</h2>${legs.map(leg=>`<div class="print-leg">${esc(leg.label)} · ${directionDistance(leg.distance)}</div>${leg.steps.map((step,i)=>`<div class="print-dir-row"><span>${i+1}</span><strong>${esc(step.instruction)}</strong><span>${directionDistance(step.distance)}</span></div>`).join('')}`).join('')}</section>${warnings.length?`<section style="margin-top:20px"><h2>Route alerts</h2>${warnings.map(w=>`<div style="font-size:10px;padding:5px 0">• ${esc(w)}</div>`).join('')}</section>`:''}<div class="print-foot">Estimate and routing guidance only. Verify road, vehicle, clearance, weight, permitting, insurance, and operating requirements before dispatch.</div>`;
+    document.body.classList.add('print-directions');const cleanup=()=>document.body.classList.remove('print-directions');window.addEventListener('afterprint',cleanup,{once:true});setTimeout(()=>window.print(),50)
+  }
+
+  function openShare(){const r=activeRoute();if(!r.result){showToast('Calculate the route before sharing',true);return}const route=r.result.routes[r.selectedAlternative||0],q=quoteFor(r,route);el('sharePreview').innerHTML=`<strong>${esc(r.name)}</strong><br>${esc(r.stops[0].address)} → ${esc(r.stops[r.stops.length-1].address)}<br>${q.distanceMiles.toFixed(1)} mi · ${formatDuration(route.duration)} · <strong>${money(q.total)}</strong>`;el('shareModal').classList.add('show');setTimeout(()=>el('shareEmail').focus(),100)}
+  function closeShare(){el('shareModal').classList.remove('show')}
+  function routePayloadForShare(r,includeDirections=true){const route=r.result.routes[r.selectedAlternative||0],q=quoteFor(r,route),warnings=collectWarnings(r,route).map(x=>x.message),directions=includeDirections?routeDirections(r).flatMap(leg=>leg.steps.map((step,i)=>({leg:leg.legIndex+1,step:i+1,legLabel:leg.label,instruction:step.instruction,road:step.road,distanceText:directionDistance(step.distance),durationText:formatDuration(step.duration)}))):[];return {name:r.name,quote:q.total,distanceMiles:q.distanceMiles,durationText:formatDuration(route.duration),stops:r.stops.map(s=>({address:s.address})),warnings,directions}}
+  function encodeRouteToken(r){const snapshot={v:1,route:{...r,result:null,directionEdits:{},selectedAlternative:0,id:'shared_'+Date.now().toString(36),name:r.name+' · shared copy'}};const json=JSON.stringify(snapshot);return btoa(unescape(encodeURIComponent(json))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')}
+  function decodeRouteToken(t){let s=t.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return JSON.parse(decodeURIComponent(escape(atob(s))))}
+  function importSharedRoute(token){const data=decodeRouteToken(token);if(!data?.route?.stops?.length)throw new Error('Invalid route');const r=data.route;r.id='r_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,7);r.result=null;r.updatedAt=Date.now();state.routes.push(r);state.activeId=r.id;saveState();clearMapResult();renderAll();drawStopMarkers(r);fitStops(r)}
+  function sendShare(){
+    const r=activeRoute(),to=el('shareEmail').value.trim(),note=el('shareNote').value.trim();if(!to){showToast('Enter a recipient email',true);return}if(!r.result){showToast('Calculate the route first',true);return}const btn=el('sendShareBtn');btn.disabled=true;btn.textContent='Sending…';const payload={to,note,route:routePayloadForShare(r,el('shareDirectionsCheck').checked),shareToken:encodeRouteToken(r)};
+    if(typeof google==='undefined'||!google.script?.run){btn.disabled=false;btn.innerHTML='<span class="ico" data-icon="send"></span>Send route';renderIcons(btn);showToast('Email sharing requires the deployed Apps Script web app',true);return}
+    google.script.run.withSuccessHandler(res=>{btn.disabled=false;btn.innerHTML='<span class="ico" data-icon="send"></span>Send route';renderIcons(btn);closeShare();showToast(`Route sent${res?.remainingQuota!=null?' · '+res.remainingQuota+' recipient quota remaining':''}`)}).withFailureHandler(err=>{btn.disabled=false;btn.innerHTML='<span class="ico" data-icon="send"></span>Send route';renderIcons(btn);showToast(err?.message||'Email could not be sent',true)}).shareRouteByEmail(payload);
+  }
+
+  function showToast(msg,error=false){clearTimeout(toastTimer);const t=el('toast');t.textContent=msg;t.classList.toggle('error',error);t.classList.add('show');toastTimer=setTimeout(()=>t.classList.remove('show'),3200)}
+
+  init();
+</script>
+
+
+</body></html>
